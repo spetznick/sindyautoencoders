@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+tf.compat.v1.disable_eager_execution()
 
 def full_network(params):
     """
@@ -25,10 +25,10 @@ def full_network(params):
 
     network = {}
 
-    x = tf.placeholder(tf.float32, shape=[None, input_dim], name='x')
-    dx = tf.placeholder(tf.float32, shape=[None, input_dim], name='dx')
+    x = tf.compat.v1.placeholder(tf.float32, shape=[None, input_dim], name='x')
+    dx = tf.compat.v1.placeholder(tf.float32, shape=[None, input_dim], name='dx')
     if model_order == 2:
-        ddx = tf.placeholder(tf.float32, shape=[None, input_dim], name='ddx')
+        ddx = tf.compat.v1.placeholder(tf.float32, shape=[None, input_dim], name='ddx')
 
     if activation == 'linear':
         z, x_decode, encoder_weights, encoder_biases, decoder_weights, decoder_biases = linear_autoencoder(x, input_dim, latent_dim)
@@ -43,16 +43,16 @@ def full_network(params):
         Theta = sindy_library_tf_order2(z, dz, latent_dim, poly_order, include_sine)
 
     if params['coefficient_initialization'] == 'xavier':
-        sindy_coefficients = tf.get_variable('sindy_coefficients', shape=[library_dim,latent_dim], initializer=tf.contrib.layers.xavier_initializer())
+        sindy_coefficients = tf.compat.v1.get_variable('sindy_coefficients', shape=[library_dim,latent_dim], initializer=tf.contrib.layers.xavier_initializer())
     elif params['coefficient_initialization'] == 'specified':
-        sindy_coefficients = tf.get_variable('sindy_coefficients', initializer=params['init_coefficients'])
+        sindy_coefficients = tf.compat.v1.get_variable('sindy_coefficients', initializer=params['init_coefficients'])
     elif params['coefficient_initialization'] == 'constant':
-        sindy_coefficients = tf.get_variable('sindy_coefficients', shape=[library_dim,latent_dim], initializer=tf.constant_initializer(1.0))
+        sindy_coefficients = tf.compat.v1.get_variable('sindy_coefficients', shape=[library_dim,latent_dim], initializer=tf.constant_initializer(1.0))
     elif params['coefficient_initialization'] == 'normal':
-        sindy_coefficients = tf.get_variable('sindy_coefficients', shape=[library_dim,latent_dim], initializer=tf.initializers.random_normal())
+        sindy_coefficients = tf.compat.v1.get_variable('sindy_coefficients', shape=[library_dim,latent_dim], initializer=tf.initializers.random_normal())
     
     if params['sequential_thresholding']:
-        coefficient_mask = tf.placeholder(tf.float32, shape=[library_dim,latent_dim], name='coefficient_mask')
+        coefficient_mask = tf.compat.v1.placeholder(tf.float32, shape=[library_dim,latent_dim], name='coefficient_mask')
         sindy_predict = tf.matmul(Theta, coefficient_mask*sindy_coefficients)
         network['coefficient_mask'] = coefficient_mask
     else:
@@ -131,7 +131,7 @@ def define_loss(network, params):
     return loss, losses, loss_refinement
 
 
-def linear_autoencoder(x, input_dim, d):
+def linear_autoencoder(x, input_dim, latent_dim):
     # z,encoder_weights,encoder_biases = encoder(x, input_dim, latent_dim, [], None, 'encoder')
     # x_decode,decoder_weights,decoder_biases = decoder(z, input_dim, latent_dim, [], None, 'decoder')
     z,encoder_weights,encoder_biases = build_network_layers(x, input_dim, latent_dim, [], None, 'encoder')
@@ -190,21 +190,23 @@ def build_network_layers(input, input_dim, output_dim, widths, activation, name)
     weights = []
     biases = []
     last_width=input_dim
+    reuse = True
+    # with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
     for i,n_units in enumerate(widths):
-        W = tf.get_variable(name+'_W'+str(i), shape=[last_width,n_units],
-            initializer=tf.contrib.layers.xavier_initializer())
-        b = tf.get_variable(name+'_b'+str(i), shape=[n_units],
-            initializer=tf.constant_initializer(0.0))
+        W = tf.compat.v1.get_variable(name+'_W'+str(i), shape=[last_width,n_units],
+            initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform"))
+        b = tf.compat.v1.get_variable(name+'_b'+str(i), shape=[n_units],
+            initializer=tf.compat.v1.constant_initializer(0.0))
         input = tf.matmul(input, W) + b
         if activation is not None:
             input = activation(input)
         last_width = n_units
         weights.append(W)
         biases.append(b)
-    W = tf.get_variable(name+'_W'+str(len(widths)), shape=[last_width,output_dim],
-        initializer=tf.contrib.layers.xavier_initializer())
-    b = tf.get_variable(name+'_b'+str(len(widths)), shape=[output_dim],
-        initializer=tf.constant_initializer(0.0))
+    W = tf.compat.v1.get_variable(name+'_W'+str(len(widths)), shape=[last_width,output_dim],
+        initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform"))
+    b = tf.compat.v1.get_variable(name+'_b'+str(len(widths)), shape=[output_dim],
+        initializer=tf.compat.v1.constant_initializer(0.0))
     input = tf.matmul(input,W) + b
     weights.append(W)
     biases.append(b)
@@ -310,6 +312,7 @@ def sindy_library_tf(z, latent_dim, poly_order, include_sine=False):
         of state variables of the input, the polynomial order, and whether or not sines are included.
     """
     library = [tf.ones(tf.shape(z)[0])]
+    
 
     for i in range(latent_dim):
         library.append(z[:,i])
@@ -420,7 +423,7 @@ def z_derivative(input, dx, weights, biases, activation='elu'):
     elif activation == 'relu':
         for i in range(len(weights)-1):
             input = tf.matmul(input, weights[i]) + biases[i]
-            dz = tf.multiply(tf.to_float(input>0), tf.matmul(dz, weights[i]))
+            dz = tf.multiply(tf.cast(input>0, dtype=tf.float32), tf.matmul(dz, weights[i]))
             input = tf.nn.relu(input)
         dz = tf.matmul(dz, weights[-1])
     elif activation == 'sigmoid':
@@ -462,7 +465,7 @@ def z_derivative_order2(input, dx, ddx, weights, biases, activation='elu'):
             input = tf.matmul(input, weights[i]) + biases[i]
             dz_prev = tf.matmul(dz, weights[i])
             elu_derivative = tf.minimum(tf.exp(input),1.0)
-            elu_derivative2 = tf.multiply(tf.exp(input), tf.to_float(input<0))
+            elu_derivative2 = tf.multiply(tf.exp(input), tf.cast(input<0, dtype=tf.float32))
             dz = tf.multiply(elu_derivative, dz_prev)
             ddz = tf.multiply(elu_derivative2, tf.square(dz_prev)) \
                   + tf.multiply(elu_derivative, tf.matmul(ddz, weights[i]))
@@ -473,7 +476,7 @@ def z_derivative_order2(input, dx, ddx, weights, biases, activation='elu'):
         # NOTE: currently having trouble assessing accuracy of 2nd derivative due to discontinuity
         for i in range(len(weights)-1):
             input = tf.matmul(input, weights[i]) + biases[i]
-            relu_derivative = tf.to_float(input>0)
+            relu_derivative = tf.cast(input>0, dtype=tf.float32)
             dz = tf.multiply(relu_derivative, tf.matmul(dz, weights[i]))
             ddz = tf.multiply(relu_derivative, tf.matmul(ddz, weights[i]))
             input = tf.nn.relu(input)
