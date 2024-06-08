@@ -6,7 +6,7 @@ from sindy_utils import library_size
 from scipy.special import legendre
 
 
-def get_duffing_data(n_ics, noise_strength=0):
+def get_duffing_data(n_ics, noise_strength=0, sys_params=None):
     """
     Generate a set of duffing training data for multiple random initial conditions.
 
@@ -19,21 +19,42 @@ def get_duffing_data(n_ics, noise_strength=0):
         doc string for list of contents.
     """
     d = 2
-    t = np.arange(0, 5, .02)
+    t = np.arange(0, 10, .01)
     n_steps = t.size
-    input_dim = 128
+    input_dim = 8
+    print("input_dim: ", input_dim)
 
-    ic_means = np.array([0,25])
-    ic_widths = 2*np.array([36,48])
+    ic_means = np.array([1,1])
+    ic_widths = np.array([2,2])
 
     # training data
-    ics = ic_widths*(np.random.rand(n_ics, d)-.5) + ic_means
-    data = generate_duffing_data(ics, t, input_dim, linear=False, normalization=np.array([1/40,1/40]))
+    ics = ic_widths*(np.random.rand(n_ics, d)) - ic_means
+    data = generate_duffing_data(ics, t, input_dim, linear=False, normalization=np.array([1/1,1/1]), **sys_params)
     data['x'] = data['x'].reshape((-1,input_dim)) + noise_strength*np.random.randn(n_steps*n_ics,input_dim)
     data['dx'] = data['dx'].reshape((-1,input_dim)) + noise_strength*np.random.randn(n_steps*n_ics,input_dim)
     data['ddx'] = data['ddx'].reshape((-1,input_dim)) + noise_strength*np.random.randn(n_steps*n_ics,input_dim)
 
     return data
+
+
+def duffing_coefficients(normalization, poly_order=3, alpha=1., beta=5., gamma=8., delta=10., omega=0.5):
+    """
+    Generate the SINDy coefficient matrix for the Duffing system.
+
+    Arguments:
+        normalization - 3-element list of array specifying scaling of each Duffing variable
+        poly_order - Polynomial order of the SINDy model.
+        sigma, beta, rho - Parameters of the Lorenz system
+    """
+    Xi = np.zeros((library_size(3,poly_order, use_sine=True),3))
+    Xi[1,0] = -sigma
+    Xi[2,0] = sigma*normalization[0]/normalization[1]
+    Xi[1,1] = rho*normalization[1]/normalization[0]
+    Xi[2,1] = -1
+    Xi[6,1] = -normalization[1]/(normalization[0]*normalization[2])
+    Xi[3,2] = -beta
+    Xi[5,2] = normalization[2]/(normalization[0]*normalization[1])
+    return Xi
 
 
 def simulate_duffing(z0, t, alpha=1., beta=5., gamma=8., delta=10., omega=0.5):
@@ -104,6 +125,7 @@ def generate_duffing_data(ics, t, n_points, linear=True, normalization=None,
         ddz *= normalization
 
     n = n_points
+    print("points in high-dimensional dataset: ", n)
     L = 1
     y_spatial = np.linspace(-L,L,n)
 
@@ -114,6 +136,8 @@ def generate_duffing_data(ics, t, n_points, linear=True, normalization=None,
     x2 = np.zeros((n_ics,n_steps,n))
     x3 = np.zeros((n_ics,n_steps,n))
     x4 = np.zeros((n_ics,n_steps,n))
+    x5 = np.zeros((n_ics,n_steps,n))
+    x6 = np.zeros((n_ics,n_steps,n))
 
     x = np.zeros((n_ics,n_steps,n))
     dx = np.zeros(x.shape)
@@ -122,20 +146,21 @@ def generate_duffing_data(ics, t, n_points, linear=True, normalization=None,
         for j in range(n_steps):
             x1[i,j] = modes[0]*z[i,j,0]
             x2[i,j] = modes[1]*z[i,j,1]
-            x3[i,j] = modes[2]*z[i,j,0]**3
-            x4[i,j] = modes[3]*z[i,j,1]**3
+            x4[i,j] = modes[2]*z[i,j,0]**3
+            x5[i,j] = modes[3]*z[i,j,1]**3
 
             x[i,j] = x1[i,j] + x2[i,j] + x3[i,j]
             if not linear:
-                x[i,j] += x4[i,j]
+                x[i,j] += x4[i,j] + x5[i,j] + x6[i,j]
 
             dx[i,j] = modes[0]*dz[i,j,0] + modes[1]*dz[i,j,1]
             if not linear:
-                dx[i,j] += modes[3]*3*(z[i,j,0]**2)*dz[i,j,0]
+                dx[i,j] += modes[2]*3*(z[i,j,0]**2)*dz[i,j,0] + modes[3]*3*(z[i,j,1]**2)*dz[i,j,1]
 
             ddx[i,j] = modes[0]*ddz[i,j,0] + modes[1]*ddz[i,j,1]
             if not linear:
-                ddx[i,j] += modes[3]*(6*z[i,j,0]*dz[i,j,0]**2 + 3*(z[i,j,0]**2)*ddz[i,j,0])
+                ddx[i,j] += modes[2]*(6*z[i,j,0]*dz[i,j,0]**2 + 3*(z[i,j,0]**2)*ddz[i,j,0]) \
+                          + modes[3]*(6*z[i,j,1]*dz[i,j,1]**2 + 3*(z[i,j,1]**2)*ddz[i,j,1])
 
     # if normalization is None:
     #     sindy_coefficients = lorenz_coefficients([1,1,1], sigma=sigma, beta=beta, rho=rho)
