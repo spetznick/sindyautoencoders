@@ -39,3 +39,22 @@ Creating the network architecture and running the training procedure requires th
 * `print_frequency` - print progress at intervals of this many epochs
 * `max_epochs` - how many epochs to run the training procedure for
 * `refinement_epochs` - how many epochs to run the refinement training for (see paper for description of the refinement procedure)
+
+## Resources
+
+- Carini, M., Auteri, F., & Giannetti, F. (2015). [Centre-manifold reduction of bifurcating flows](https://doi.org/10.1017/jfm.2015.3). *J. Fluid Mech.*, 767, 109-145. Cambridge University Press. DOI: [10.1017/jfm.2015.3](https://doi.org/10.1017/jfm.2015.3).
+
+- Champion, K., Lusch, B., Kutz, J. N., & Brunton, S. L. (2019). [Data-driven discovery of coordinates and governing equations](https://doi.org/10.1073/pnas.1906995116). *Proceedings of the National Academy of Sciences of the United States of America*, 116(45), 22445-22451. National Academy of Sciences. DOI: [10.1073/pnas.1906995116](https://doi.org/10.1073/pnas.1906995116).
+
+- Brunton, S. L., Proctor, J. L., & Kutz, J. N. (2016). [Discovering governing equations from data by sparse identification of nonlinear dynamical systems](https://doi.org/10.1073/pnas.1517384113). *Proceedings of the National Academy of Sciences of the United States of America*, 113(15), 3932-3937. National Academy of Sciences. DOI: [10.1073/pnas.1517384113](https://doi.org/10.1073/pnas.1517384113).
+
+- Robinson, H., Pawar, S., Rasheed, A., & San, O. (2022). [Physics guided neural networks for modelling of non-linear dynamics](https://doi.org/10.1016/j.neunet.2022.07.023). *Neural Networks*, 154, 333-345. Elsevier Ltd. DOI: [10.1016/j.neunet.2022.07.023](https://doi.org/10.1016/j.neunet.2022.07.023).
+
+- Champion, K., Lusch, B., Kutz, J. N., & Brunton, S. L. (2019). [SindyAutoencoders](https://github.com/kpchamp/SindyAutoencoders). GitHub.
+
+- Conti, P., Gobat, G., Fresca, S., Manzoni, A., & Frangi, A. (2023). [Reduced order modeling of parametrized systems through autoencoders and SINDy approach: continuation of periodic solutions](https://doi.org/10.1016/j.cma.2023.116072). *Computer Methods in Applied Mechanics and Engineering*, 411, 116072. Elsevier Ltd. DOI: [10.1016/j.cma.2023.116072](https://doi.org/10.1016/j.cma.2023.116072).
+
+- Champion, K. P., Brunton, S. L., & Kutz, J. N. (2019). [Discovery of Nonlinear Multiscale Systems: Sampling Strategies and Embeddings](https://doi.org/10.1137/18M1188227). *SIAM Journal on Applied Dynamical Systems*, 18(1), 312-333. SIAM. DOI: [10.1137/18M1188227](https://doi.org/10.1137/18M1188227).
+
+- Otto, S. E., & Rowley, C. W. (2019). [Linearly Recurrent Autoencoder Networks for Learning Dynamics](https://doi.org/10.1137/18M1177846). *SIAM Journal on Applied Dynamical Systems*, 18(1), 558-593. SIAM. DOI: [10.1137/18M1177846](https://doi.org/10.1137/18M1177846).
+
